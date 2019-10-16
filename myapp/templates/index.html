@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+
+<script src="static/jquery-2.1.1.min.js"></script>
+<script type="text/javascript">
+
+
+function start_task(interpreter,script,log) {
+     $.post('/start_task',{'interpreter':interpreter,'script':script,'log':log,'csrfmiddlewaretoken':'{{ csrf_token }}'},function(data){ });
+}
+
+//使用websocket获取更新日志
+function getprocess_from_socket(logtype) {
+    if (typeof window.s != "undefined") {
+        window.s.close()
+    }
+    /*创建socket连接*/
+    var socket = new WebSocket("ws://" + window.location.host + "/testwebsocket")
+
+    socket.onopen = function () {
+        console.log('WebSocket open');//成功连接上Websocket
+        socket.send(logtype);
+        // socket.send('b');
+    }
+    socket.onmessage = function (e) {
+        console.log(e.data);
+    }
+
+    socket.onclose = function () {
+        console.log("WebSocket close");
+    }
+    // Call onopen directly if socket is already open
+    if (socket.readyState == WebSocket.OPEN) socket.onopen();
+    // window.s = socket;
+}
+
+    function test_setInterval(log) {
+        myInterval = setInterval("getprocess('log')",1000)
+    }
+
+    function getprocess(log) {
+         $.ajax({
+         async:true,type:"POST",url:"getprocess",data:{'log':'a.log','csrfmiddlewaretoken':'{{ csrf_token }}'},success:
+             //请求/getprocess
+                 function (data){
+                        console.log(data['data'])
+                        console.log(data['status'])
+                        if(data['status'] == 0){
+                            window.clearInterval(myInterval ); //停止setInterval
+                        }
+                 }
+         });
+    }
+
+</script>
+
+
+
+
+<body>
+
+<button onclick="start_task('/bin/bash','a.sh','a.log')">start_task</button>
+<br>
+<button onclick="getprocess_from_socket('a')">test_dweksocket</button>
+<br>
+<button onclick="test_setInterval('a.log')">test_setInterval</button>
+
+</body>
+</html>
